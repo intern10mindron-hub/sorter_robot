@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SCARA Robot Viewer — Luminax Sorter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#0d0f0e;--bg2:#141614;--bg3:#1c1f1c;--bg4:#242724;
+    --border:#2a2e2a;--text:#c8cdc8;--text2:#7a837a;
+    --accent:#4ade80;--warn:#f59e0b;--danger:#f87171;--blue:#60a5fa;
+    --mono:'IBM Plex Mono',monospace;
+  }
+  html,body{width:100%;height:100%;background:var(--bg);overflow:hidden;font-family:var(--mono);}
+  .layout{display:flex;width:100%;height:100%;}
+  .canvas-wrap{flex:1;position:relative;overflow:hidden;}
+  #canvas{width:100%;height:100%;display:block;}
+  .canvas-wrap.slot-mode{cursor:pointer;}
+
+
+  #slot-panel{
+    position:absolute;bottom:20px;left:20px;width:260px;
+    background:rgba(13,17,23,0.97);backdrop-filter:blur(12px);
+    border:1px solid rgba(74,222,128,0.5);border-radius:12px;
+    padding:16px;z-index:9999;display:none !important;font-family:var(--mono);
+    box-shadow:0 8px 32px rgba(0,0,0,0.8),0 0 20px rgba(74,222,128,0.1);
+  }
+  #slot-panel.visible{display:block !important;}
+  .sp-header{display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(74,222,128,0.2);}
+  .sp-title{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);}
+  .sp-close{background:none;border:none;color:var(--text2);font-size:15px;cursor:pointer;
+    padding:0 4px;line-height:1;font-family:var(--mono);transition:color 0.15s;}
+  .sp-close:hover{color:var(--danger);}
+  .sp-slot-name{font-size:28px;font-weight:700;color:#ffffff;letter-spacing:4px;
+    text-align:center;padding:10px 0 12px;}
+  .sp-weight-row{display:flex;align-items:center;justify-content:space-between;
+    background:rgba(0,0,0,0.35);border-radius:8px;padding:8px 12px;margin-bottom:14px;}
+  .sp-weight-label{font-size:10px;color:var(--text2);letter-spacing:1px;}
+  .sp-weight-val{display:flex;align-items:center;gap:8px;}
+  .sp-swatch{width:10px;height:10px;border-radius:50%;background:#3a3a3a;flex-shrink:0;}
+  .sp-weight-text{font-size:12px;color:var(--text2);font-weight:500;}
+  .sp-input-row{display:flex;gap:8px;margin-bottom:10px;}
+  .sp-input{flex:1;background:rgba(0,0,0,0.5);border:1px solid #2d3748;border-radius:7px;
+    padding:9px 10px;font-size:13px;color:#eceff4;font-family:var(--mono);outline:none;
+    text-align:center;transition:border-color 0.15s,box-shadow 0.15s;}
+  .sp-input:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(74,222,128,0.25);}
+  .sp-set-btn{background:rgba(0,26,10,0.8);border:1px solid var(--accent);border-radius:7px;
+    color:var(--accent);font-size:11px;font-weight:600;padding:9px 14px;cursor:pointer;
+    font-family:var(--mono);letter-spacing:1px;transition:background 0.15s,border-color 0.15s;}
+  .sp-set-btn:hover{background:rgba(0,42,20,0.9);border-color:#6ee7b7;}
+  .sp-clear-btn{width:100%;background:transparent;border:1px solid #2d3748;border-radius:7px;
+    color:var(--text2);font-size:10px;padding:8px;cursor:pointer;font-family:var(--mono);
+    letter-spacing:1px;transition:border-color 0.15s,color 0.15s;}
+  .sp-clear-btn:hover{border-color:var(--danger);color:var(--danger);}
+  .sp-clear-all-btn{width:100%;background:transparent;border:1px solid #3a2020;
+    border-radius:7px;color:#7a4040;font-size:10px;padding:8px;cursor:pointer;
+    font-family:var(--mono);letter-spacing:1px;margin-top:6px;
+    transition:border-color 0.15s,color 0.15s,background 0.15s;}
+  .sp-clear-all-btn:hover{border-color:var(--danger);color:var(--danger);
+    background:rgba(248,113,113,0.08);}
+  .sp-hint{font-size:9px;color:#3a4a3a;text-align:center;margin-top:10px;letter-spacing:1px;}
+
+  #tcp-overlay{position:absolute;bottom:12px;right:12px;background:rgba(13,15,14,.9);
+    border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:11px;
+    color:var(--text2);line-height:1.9;pointer-events:none;z-index:20;}
+    #scale-overlay{position:absolute;top:50px;left:12px;background:rgba(13,15,14,.9);
+      border:1px solid rgba(74,222,128,0.4);border-radius:6px;padding:8px 14px;font-size:12px;
+      color:var(--accent);line-height:1.9;pointer-events:none;z-index:20;
+      font-family:var(--mono);letter-spacing:1px;}
+    #scale-overlay b{font-size:16px;font-weight:700;color:#ffffff;}
+    #scale-overlay span{font-size:10px;color:var(--text2);margin-left:3px;}
+    #scale-overlay.live{border-color:var(--accent);box-shadow:0 0 10px rgba(74,222,128,0.2);}
+
+  #hint{position:absolute;top:10px;right:10px;font-size:10px;color:var(--text2);
+    background:rgba(13,15,14,.7);border:1px solid var(--border);border-radius:4px;
+    padding:4px 9px;z-index:10;}
+  #slot-badge{position:absolute;top:10px;left:10px;display:none;padding:4px 10px;
+    background:#001a2a;border:1px solid #60a5fa;border-radius:4px;font-size:10px;
+    color:#60a5fa;z-index:10;}
+  #slot-badge.active{display:block;}
+
+  #loading-screen{position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:var(--bg);gap:14px;}
+  #loading-title{font-size:11px;letter-spacing:4px;color:var(--text2);}
+  #loading-bar-wrap{width:160px;height:2px;background:var(--bg4);border-radius:1px;}
+  #loading-bar{height:2px;width:0%;background:var(--accent);border-radius:1px;transition:width .2s;}
+  #loading-sub{font-size:10px;color:var(--text2);letter-spacing:2px;}
+  #loading-error{font-size:10px;color:var(--danger);letter-spacing:1px;display:none;
+    text-align:center;max-width:300px;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="canvas-wrap" id="canvas-wrap">
+
+    <div id="loading-screen">
+      <div id="loading-title">LUMINAX SORTER</div>
+      <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+      <div id="loading-sub">INITIALIZING...</div>
+      <div id="loading-error"></div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div id="hint">SLOT MODE ON → Click any slot → Panel appears</div>
+
+
+    <div id="slot-badge">SLOT SELECT MODE</div>
+
+    <div id="slot-panel">
+      <div class="sp-header">
+        <span class="sp-title">⚖ SLOT WEIGHT</span>
+        <button class="sp-close" id="sp-close-btn">✕</button>
+      </div>
+      <div class="sp-slot-name" id="sp-slot-name">—</div>
+      <div class="sp-weight-row">
+        <span class="sp-weight-label">CURRENT</span>
+        <div class="sp-weight-val">
+          <span class="sp-swatch" id="sp-swatch"></span>
+          <span class="sp-weight-text" id="sp-weight-text">unassigned</span>
+        </div>
+      </div>
+      <div class="sp-input-row">
+        <input type="number" id="sp-input" class="sp-input"
+               min="0.001" max="9.999" step="0.001"
+               placeholder="0.000 ct" autocomplete="off">
+        <button class="sp-set-btn" id="sp-set-btn">SET</button>
+      </div>
+      <button class="sp-clear-btn" id="sp-clear-btn">✕ CLEAR SLOT</button>
+      <button class="sp-clear-all-btn" id="sp-clear-all-btn">✕ CLEAR ALL SLOTS</button>
+      <div class="sp-hint">ENTER to set · ESC to close</div>
+    </div>
+
+    <div id="weight-picker" style="display:none;">
+      <div class="wp-palette" id="wp-palette"></div>
+    </div>
+
+    <div id="tcp-overlay">
+      TCP &nbsp; X <b id="tx">—</b> &nbsp; Y <b id="ty">—</b> &nbsp; Z <b id="tz">—</b>
+    </div>
+
+    <div id="scale-overlay">
+      ⚖ &nbsp; <b id="scale-val">0.0000</b> <span id="scale-unit">ct</span>
+    </div>
+
+  </div>
+</div>
+
+<script src="./qwebchannel.js"></script>
+<script src="./three.min.js"></script>
+<script src="./OrbitControls.js"></script>
+<script src="./GLTFLoader.js"></script>
+<script>
+'use strict';
+
+const _cw = console.warn.bind(console);
+console.warn = (...a) => {
+  if (typeof a[0] === 'string' && (a[0].includes('UV set') || a[0].includes('Custom UV'))) return;
+  _cw(...a);
+};
+
+var qtBridge = null;
+if (typeof QWebChannel !== 'undefined' && typeof qt !== 'undefined') {
+  new QWebChannel(qt.webChannelTransport, function(channel) {
+    qtBridge = channel.objects.qtBridge;
+    console.log('[Viewer] Qt bridge connected');
+  });
+} else {
+  console.log('[Viewer] Running without Qt bridge');
+}
+
+const D2R = Math.PI / 180;
+const WEIGHTS = [
+  { id:'w001', label:'0.01 ct', value:0.01, hex:'#38bdf8', color:0x38bdf8 },
+  { id:'w005', label:'0.05 ct', value:0.05, hex:'#00c8a0', color:0x00c8a0 },
+  { id:'w010', label:'0.10 ct', value:0.10, hex:'#a3e635', color:0xa3e635 },
+  { id:'w025', label:'0.25 ct', value:0.25, hex:'#facc15', color:0xfacc15 },
+  { id:'w050', label:'0.50 ct', value:0.50, hex:'#fb923c', color:0xfb923c },
+  { id:'w100', label:'1.00 ct', value:1.00, hex:'#f87171', color:0xf87171 },
+  { id:'w200', label:'2.00 ct', value:2.00, hex:'#c084fc', color:0xc084fc },
+];
+const SLOT_ORDER = [
+  'A1','A2','A3','A4','A5','B1','B2','B3','B4','B5','B6',
+  'C1','C2','C3','C4','C5','D1','D2','D3','D4','D5','D6',
+  'E1','E2','E3','E4','E5','E6','F1','F2','F3','F4','F5','F6','F7','F8','F9','F10',
+  'G1','G2','G3','G4','G5','G6','G7','G8','G9','G10','H1','H2','H3','H4','H5','H6','H7','H8',
+  'I1','I2','I3','I4','I5','I6','J1','J2','J3','J4'
+];
+
+const canvas     = document.getElementById('canvas');
+const canvasWrap = document.getElementById('canvas-wrap');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0d1117');
+const camera = new THREE.PerspectiveCamera(60, 1, 0.001, 100000);
+camera.position.set(8, 6, 8);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = false;
+controls.enableZoom = true;
+controls.zoomSpeed = 0.8;
+controls.rotateSpeed = 0.5;
+controls.panSpeed = 0.5;
+controls.screenSpacePanning = true;
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dir1 = new THREE.DirectionalLight(0xffffff, 3.0);
+dir1.castShadow = true;
+dir1.shadow.mapSize.set(2048, 2048);
+dir1.shadow.camera.near = 0.1;
+dir1.shadow.camera.far = 500;
+dir1.shadow.bias = -0.001;
+scene.add(dir1);
+const dir2 = new THREE.DirectionalLight(0x4488ff, 0.6); scene.add(dir2);
+const dir3 = new THREE.DirectionalLight(0x00ff88, 0.3); scene.add(dir3);
+const dir4 = new THREE.DirectionalLight(0x223322, 0.4); scene.add(dir4);
+
+let grid = new THREE.GridHelper(600, 60, 0x4ade80, 0x1a2a1a);
+grid.material.opacity = 0.25;
+grid.material.transparent = true;
+scene.add(grid);
+let robotModel       = null;
+let slotMode         = false;
+let slotMeshes       = [];
+let slotData         = new Map();
+let selectedSlotUUID = null;
+let hoveredSlotUUID  = null;
+let J3_SCALE         = 0.001;
+let LIFT_AMOUNT      = 0.01;
+
+const joints = { j1:null, j2:null, j3:null, j4:null };
+// FIXED: Expanded joint names for better model compatibility
+const jointNames = {
+  j1: ['LINK_1','LINK 1','LINK1','Link_1','link1','link_2','J1','joint1','Bone','Bone001','Base','base','BASE'],
+  j2: ['LINK_2','LINK 2','LINK2','Link_2','link2','link_2','J2','joint2','Bone002','Arm','arm','ARM'],
+  j3: ['SPINDLE','spindle','Spindle','J3','joint3','ZAXIS','z_axis','Bone003','SHAFT','shaft','Shaft','ARM3','arm3','Vertical','vertical','Column','column','LINK_3','LINK 3','LINK3'],
+  j4: ['EndEffector','ENDEFFECTOR','end_effector','J4','joint4','WRIST','wrist','Bone004','Tool','tool','Gripper','gripper','LINK_4','LINK 4','LINK4'],
+};
+
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2();
+const slotPanel    = document.getElementById('slot-panel');
+const spSlotName   = document.getElementById('sp-slot-name');
+const spSwatch     = document.getElementById('sp-swatch');
+const spWeightText = document.getElementById('sp-weight-text');
+const spInput      = document.getElementById('sp-input');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setProgress(pct, msg) {
+  document.getElementById('loading-bar').style.width = pct + '%';
+  document.getElementById('loading-sub').textContent = msg;
+}
+function showError(msg) {
+  document.getElementById('loading-bar').style.background = '#f87171';
+  document.getElementById('loading-sub').style.display = 'none';
+  const e = document.getElementById('loading-error');
+  e.style.display = 'block';
+  e.innerHTML = msg;
+}
+
+// ── Dynamic weight ranges — set by Python via setWeightRanges() ───────────────
+var _weightRanges = [];
+
+window.setWeightRanges = function(ranges) {
+  _weightRanges = ranges;
+  const list = document.getElementById('wr-list');
+  if (!list) return;
+  list.innerHTML = '';
+  ranges.forEach(function(r, i) {
+    const item = document.createElement('div');
+    item.className = 'wr-item';
+    item.innerHTML =
+      '<div class="wr-dot" style="background:' + r.color + ';"></div>' +
+      '<span class="wr-range">' +
+        r.min_ct.toFixed(2) + ' \u2013 ' + r.max_ct.toFixed(2) + ' ct' +
+      '</span>' +
+      '<span class="wr-count" id="range-count-' + i + '">0</span>';
+    list.appendChild(item);
+  });
+  console.log('[Viewer] Weight ranges updated: ' + ranges.length + ' ranges');
+  updateWeightRangesCounts();
+};
+
+function getColorForWeight(val) {
+  for (var i = 0; i < _weightRanges.length; i++) {
+    var r = _weightRanges[i];
+    if (val >= r.min_ct && val < r.max_ct) {
+      var hex = r.color;
+      var num = parseInt(hex.replace('#',''), 16);
+      return { hex: hex, color: num };
+    }
+  }
+  return { hex: '#c084fc', color: 0xc084fc };
+}
+
+function applyNormalMaterial(mat) {
+  mat.color.set(0xb8c8b8);
+  mat.emissive = new THREE.Color(0x000000);
+  mat.emissiveIntensity = 0;
+  mat.metalness = 0.82;
+  mat.roughness = 0.18;
+  mat.transparent = false;
+  mat.opacity = 1.0;
+  mat.wireframe = false;
+  mat.depthWrite = true;
+  mat.depthTest = true;
+  mat.needsUpdate = true;
+}
+
+function applySlotColor(d) {
+  const w    = d.weight;
+  const mats = Array.isArray(d.mesh.material) ? d.mesh.material : [d.mesh.material];
+  mats.forEach(mat => {
+    if (!mat) return;
+    if (w) {
+      mat.color.set(w.color);
+      mat.emissive = new THREE.Color(w.color);
+      mat.emissiveIntensity = 0.6;
+    } else {
+      mat.color.set(0xb8c8b8);
+      mat.emissive = new THREE.Color(0x000000);
+      mat.emissiveIntensity = 0;
+    }
+    mat.metalness  = 0.82;
+    mat.roughness  = 0.18;
+    mat.transparent = false;
+    mat.opacity    = 1.0;
+    mat.depthWrite = true;
+    mat.needsUpdate = true;
+  });
+}
+
+function applySlotModeColor(d) { applySlotColor(d); }
+// ── Weight ranges counter ─────────────────────────────────────────────────────
+function updateWeightRangesCounts() {
+  // Reset all counts first
+  _weightRanges.forEach(function(r, i) {
+    var el = document.getElementById('range-count-' + i);
+    if (el) el.textContent = '0';
+  });
+
+  // Count diamonds in each range
+  slotData.forEach(function(d) {
+    if (!d.weight || d.weight.value <= 0) return;
+    var val = d.weight.value;
+    for (var i = 0; i < _weightRanges.length; i++) {
+      var r = _weightRanges[i];
+      if (val >= r.min_ct && val < r.max_ct) {
+        var el = document.getElementById('range-count-' + i);
+        if (el) el.textContent = String(parseInt(el.textContent) + 1);
+        break;
+      }
+    }
+  });
+}
+
+// ── Panel functions ───────────────────────────────────────────────────────────
+function updatePanel(d) {
+  if (!d) return;
+  spSlotName.textContent = d.slotName || '—';
+  if (d.weight) {
+    spSwatch.style.background = d.weight.hex;
+    spSwatch.style.boxShadow  = '0 0 5px ' + d.weight.hex;
+    spWeightText.textContent  = d.weight.label;
+    spWeightText.style.color  = d.weight.hex;
+  } 
+  else {
+    spSwatch.style.background = '#3a3a3a';
+    spSwatch.style.boxShadow  = 'none';
+    spWeightText.textContent  = 'unassigned';
+    spWeightText.style.color  = 'var(--text2)';
+  }
+  spInput.value = '';
+}
+
+function showPanel() {
+  slotPanel.style.removeProperty('display');
+  slotPanel.classList.add('visible');
+  slotPanel.style.display = 'block';
+  setTimeout(() => spInput.focus(), 80);
+}
+
+function hidePanel() {
+  slotPanel.classList.remove('visible');
+  slotPanel.style.display = 'none';
+  if (selectedSlotUUID) {
+    const d = slotData.get(selectedSlotUUID);
+    if (d) { d.targetY = d.baseY; applySlotColor(d); }
+    selectedSlotUUID = null;
+  }
+}
+
+function getPrevRange(val) {
+    if (val <= 0.05) return 0.01;
+    if (val <= 0.10) return 0.05;
+    if (val <= 0.15) return 0.10;
+    if (val <= 0.25) return 0.15;
+    if (val <= 0.50) return 0.25;
+    if (val <= 1.00) return 0.50;
+    return 1.00;
+}
+
+function applyWeightToSlot() {
+  const val = parseFloat(spInput.value);
+  if (isNaN(val) || val <= 0) { spInput.value = ''; return; }
+  if (!selectedSlotUUID) return;
+  const d = slotData.get(selectedSlotUUID);
+  if (!d) return;
+  let w = WEIGHTS.find(w => Math.abs(w.value - val) < 0.0001);
+  if (!w) {
+    const c = getColorForWeight(val);
+    w = { id:'custom_'+val.toFixed(3), label:val.toFixed(3)+' ct',
+          value:val, hex:c.hex, color:c.color };
+  }
+
+  d.weight = w;
+  const mats = Array.isArray(d.mesh.material) ? d.mesh.material : [d.mesh.material];
+  mats.forEach(mat => {
+    if (!mat) return;
+    mat.color.set(w.color);
+    mat.emissive = new THREE.Color(w.color);
+    mat.emissiveIntensity = 0.7;
+    mat.transparent = false;
+    mat.opacity = 1.0;
+    mat.needsUpdate = true;
+  });
+
+  spSlotName.textContent    = d.slotName;
+  spSwatch.style.background = w.hex;
+  spSwatch.style.boxShadow  = '0 0 6px ' + w.hex;
+  spWeightText.textContent  = w.label;
+  spWeightText.style.color  = w.hex;
+
+  updateWeightRangesCounts();
+  spInput.value = '';
+  setTimeout(() => spInput.focus(), 50);
+  // Store assignment for Python to poll
+    window._lastAssignment = { index: d.slotIndex, value: w.value };
+}
+
+// Clear only the currently selected slot
+function clearCurrentSlot() {
+  if (!selectedSlotUUID) return;
+  const d = slotData.get(selectedSlotUUID);
+  if (!d) return;
+  d.weight  = null;
+  d.targetY = d.baseY;
+  applySlotColor(d);
+  updatePanel(d);
+  updateWeightRangesCounts();
+  spInput.focus();
+}
+
+// Clear ALL slots at once
+function clearAllSlots() {
+  slotData.forEach(d => {
+    d.weight  = null;
+    d.targetY = d.baseY;
+    applySlotColor(d);
+  });
+  updateWeightRangesCounts();
+  if (selectedSlotUUID) {
+    const d = slotData.get(selectedSlotUUID);
+    if (d) updatePanel(d);
+  }
+}
+
+// ── Button listeners ──────────────────────────────────────────────────────────
+document.getElementById('sp-set-btn').addEventListener('click', applyWeightToSlot);
+document.getElementById('sp-clear-btn').addEventListener('click', clearCurrentSlot);
+document.getElementById('sp-clear-all-btn').addEventListener('click', clearAllSlots);
+document.getElementById('sp-close-btn').addEventListener('click', hidePanel);
+spInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter')  { e.preventDefault(); applyWeightToSlot(); }
+  if (e.key === 'Escape') { e.preventDefault(); hidePanel(); }
+});
+
+// ── Camera fit ────────────────────────────────────────────────────────────────
+setProgress(10, 'CONNECTING...');
+
+function fitCamera(box) {
+  const size   = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const dist   = maxDim * 1.5;
+  camera.fov = 60; camera.near = 0.001; camera.far = dist * 100;
+  camera.updateProjectionMatrix();
+  camera.position.set(dist*0.8, dist*0.7, dist*0.8);
+  controls.target.set(0, size.y*0.5, 0);
+  controls.minDistance = maxDim * 0.2;
+  controls.maxDistance = maxDim * 10;
+  controls.update();
+  dir1.position.set( dist*0.8,  dist*1.5,  dist*0.8);
+  dir2.position.set(-dist*0.6,  dist*0.8, -dist*0.4);
+  dir3.position.set(-dist*0.3,  dist*0.5,  dist*0.8);
+  dir4.position.set(0, -dist*0.3, 0);
+  scene.remove(grid);
+  grid.geometry.dispose();
+  grid.material.dispose();
+  grid = new THREE.GridHelper(maxDim*5, 50, 0x4ade80, 0x1a2a1a);
+  grid.material.opacity = 0.25;
+  grid.material.transparent = true;
+  grid.position.set(0, box.min.y + 0.1, 0);
+  scene.add(grid);
+  J3_SCALE    = size.y / 300;
+  LIFT_AMOUNT = size.y * 0.04;
+}
+
+// ── GLB load ──────────────────────────────────────────────────────────────────
+setProgress(20, 'LOADING MODEL...');
+
+new THREE.GLTFLoader().load(
+  './SCARA_ROBOT01.glb',
+  function(gltf) {
+    setProgress(80, 'BUILDING SCENE...');
+    robotModel = gltf.scene;
+    scene.add(robotModel);
+    robotModel.updateMatrixWorld(true);
+
+    // DEBUG: Log all mesh names to console
+    setTimeout(() => {
+      console.log('=== ALL MESH NAMES IN MODEL ===');
+      robotModel.traverse(node => {
+        if (node.isMesh || node.isBone || node.isObject3D) {
+          console.log(node.type + ': ' + node.name);
+        }
+      });
+      console.log('J1 found:', joints.j1 ? joints.j1.name : 'NOT FOUND');
+      console.log('J2 found:', joints.j2 ? joints.j2.name : 'NOT FOUND');
+      console.log('J3 found:', joints.j3 ? joints.j3.name : 'NOT FOUND');
+      console.log('J4 found:', joints.j4 ? joints.j4.name : 'NOT FOUND');
+    }, 3000);
+
+    let box = new THREE.Box3().setFromObject(robotModel);
+    const center = box.getCenter(new THREE.Vector3());
+    robotModel.position.x -= center.x;
+    robotModel.position.z -= center.z;
+    robotModel.position.y -= box.min.y;
+    robotModel.updateMatrixWorld(true);
+    box = new THREE.Box3().setFromObject(robotModel);
+    fitCamera(box);
+
+    const SLOT_RE = /^([A-J])(\d{1,2})$/;
+
+    robotModel.traverse(node => {
+      if (!node.isMesh) return;
+      node.castShadow    = true;
+      node.receiveShadow = true;
+      const isSlot = SLOT_RE.test(node.name);
+      const srcMats = Array.isArray(node.material) ? node.material : [node.material];
+
+      const newMats = srcMats.map(mat => {
+        if (!mat) return mat;
+        ['aoMap','lightMap','map','metalnessMap','roughnessMap','normalMap',
+         'emissiveMap','bumpMap','displacementMap'].forEach(key => {
+          if (mat[key] && mat[key].channel !== undefined && mat[key].channel > 0)
+            mat[key] = null;
+        });
+        
+        if (isSlot) {
+          const c = mat.clone();
+          c.color.set(0xb8c8b8);
+          c.emissive          = new THREE.Color(0x000000);
+          c.emissiveIntensity = 0;
+          c.metalness         = 0.82;
+          c.roughness         = 0.18;
+          c.transparent       = false;
+          c.opacity           = 1.0;
+          c.depthWrite        = true;
+          c.side              = THREE.DoubleSide;
+          c.needsUpdate       = true;
+          return c;
+        } else {
+          applyNormalMaterial(mat);
+          return mat;
+        }
+      });
+
+      node.material = Array.isArray(node.material) ? newMats : newMats[0];
+
+      if (isSlot) {
+        slotMeshes.push(node);
+        slotData.set(node.uuid, {
+          mesh: node, slotName: node.name, slotIndex: 0,
+          weight: null,
+          baseY: node.position.y, currentY: node.position.y, targetY: node.position.y,
+        });
+      }
+    });
+
+    slotMeshes.sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric:true }));
+    slotMeshes.forEach((m,i) => { const d = slotData.get(m.uuid); if (d) d.slotIndex = i; });
+
+    const findNode = names => {
+      for (const n of names) { const f = robotModel.getObjectByName(n); if (f) return f; }
+      return null;
+    };
+    joints.j1 = findNode(jointNames.j1);
+    joints.j2 = findNode(jointNames.j2);
+    joints.j3 = findNode(jointNames.j3);
+    joints.j4 = findNode(jointNames.j4);
+    if (joints.j3) joints.j3._baseY = joints.j3.position.y;
+
+    setTimeout(() => {
+      console.log('[DEBUG] slotMeshes:' + slotMeshes.length + ' slotData:' + slotData.size);
+    }, 600);
+
+    setProgress(100, 'MODEL READY');
+    setTimeout(() => {
+      document.getElementById('loading-screen').style.display = 'none';
+    }, 400);
+  },
+  function(xhr) {
+    if (xhr.total > 0)
+      setProgress(Math.round((xhr.loaded/xhr.total)*60)+20,
+        'LOADING '+(xhr.loaded/1024/1024).toFixed(1)+' MB...');
+  },
+  function(err) {
+    console.error('[Viewer] GLB load failed:', err);
+    showError('❌ Could not load SCARA_ROBOT01.glb<br><br>Make sure the file is in the correct folder.');
+  }
+);
+
+// ── Pointer / Mouse handlers ──────────────────────────────────────────────────
+let mouseDownPos  = { x:0, y:0 };
+let mouseDownTime = 0;
+
+canvas.addEventListener('pointerdown', e => {
+  mouseDownPos  = { x: e.clientX, y: e.clientY };
+  mouseDownTime = Date.now();
+});
+
+canvas.addEventListener('pointerup', e => {
+  const dx = e.clientX - mouseDownPos.x;
+  const dy = e.clientY - mouseDownPos.y;
+  const dt = Date.now() - mouseDownTime;
+  if (Math.sqrt(dx*dx + dy*dy) < 6 && dt < 400) onCanvasClick(e);
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!slotMode || !robotModel) return;
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(slotMeshes, false);
+
+  let uid = null;
+  for (let i = 0; i < hits.length; i++) {
+    if (slotData.has(hits[i].object.uuid)) { uid = hits[i].object.uuid; break; }
+  }
+
+  if (uid !== hoveredSlotUUID) {
+    if (hoveredSlotUUID && hoveredSlotUUID !== selectedSlotUUID) {
+      const d = slotData.get(hoveredSlotUUID);
+      if (d) applySlotColor(d);
+    }
+    hoveredSlotUUID = null;
+    if (uid && uid !== selectedSlotUUID) {
+      hoveredSlotUUID = uid;
+      const d = slotData.get(uid);
+      if (d) {
+        const mats = Array.isArray(d.mesh.material) ? d.mesh.material : [d.mesh.material];
+        mats.forEach(mat => {
+          if (!mat) return;
+          mat.emissive          = new THREE.Color(0x4ade80);
+          mat.emissiveIntensity = 0.5;
+          mat.needsUpdate       = true;
+        });
+      }
+    }
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (hoveredSlotUUID && hoveredSlotUUID !== selectedSlotUUID) {
+    const d = slotData.get(hoveredSlotUUID);
+    if (d) applySlotColor(d);
+    hoveredSlotUUID = null;
+  }
+});
+
+// ── Slot click ────────────────────────────────────────────────────────────────
+function onCanvasClick(e) {
+  if (!slotMode || !robotModel) return;
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(slotMeshes, false);
+  if (hits.length === 0) return;
+
+  let uid = null;
+  let d   = null;
+  for (let i = 0; i < hits.length; i++) {
+    const tu = hits[i].object.uuid;
+    const td = slotData.get(tu);
+    if (td) { uid = tu; d = td; break; }
+  }
+  if (!d) return;
+
+  if (selectedSlotUUID && selectedSlotUUID !== uid) {
+    const prev = slotData.get(selectedSlotUUID);
+    if (prev) { prev.targetY = prev.baseY; applySlotColor(prev); }
+  }
+
+  selectedSlotUUID = uid;
+  d.targetY = d.baseY + LIFT_AMOUNT;
+
+  const mats = Array.isArray(d.mesh.material) ? d.mesh.material : [d.mesh.material];
+  mats.forEach(mat => {
+    if (!mat) return;
+    mat.emissive          = new THREE.Color(0xffffff);
+    mat.emissiveIntensity = 0.5;
+    mat.needsUpdate       = true;
+  });
+
+  updatePanel(d);
+  showPanel();
+}
+
+function updateMouse(e) {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+}
+
+// ── Misc ──────────────────────────────────────────────────────────────────────
+function closePicker() {
+  const p = document.getElementById('weight-picker');
+  if (p) p.style.display = 'none';
+}
+
+function assignWeightToSelected(weight) {
+  if (!selectedSlotUUID) return;
+  const d = slotData.get(selectedSlotUUID);
+  if (!d) return;
+  d.weight  = weight;
+  d.targetY = d.baseY;
+  applySlotColor(d);
+  updatePanel(d);
+  updateWeightRangesCounts();
+}
+
+function sendRobotToSlot() {
+  if (!selectedSlotUUID) return;
+  const d = slotData.get(selectedSlotUUID);
+  if (!d) return;
+  if (qtBridge) qtBridge.onSlotSelected(d.slotIndex);
+  const mats = Array.isArray(d.mesh.material) ? d.mesh.material : [d.mesh.material];
+  mats.forEach(mat => {
+    if (!mat) return;
+    mat.emissive = new THREE.Color(0x00C8A0);
+    mat.emissiveIntensity = 1.0;
+    mat.needsUpdate = true;
+  });
+  setTimeout(() => applySlotColor(d), 600);
+}
+
+function buildWeightPalette() {
+  const container = document.getElementById('wp-palette');
+  if (!container) return;
+  container.innerHTML = '';
+  WEIGHTS.forEach(w => {
+    const btn   = document.createElement('button');
+    btn.id      = 'wp-btn-' + w.id;
+    btn.onclick = () => assignWeightToSelected(w);
+    container.appendChild(btn);
+  });
+}
+
+// ── Window API ────────────────────────────────────────────────────────────────
+window.updateRobot = function(j1, j2, j3, j4) {
+  if (joints.j1) {
+    joints.j1.rotation.y = j1 * D2R;
+    joints.j1.visible = true;
+  }
+
+  if (joints.j2) {
+    joints.j2.rotation.y = j2 * D2R;
+    joints.j2.visible = true;
+  }
+
+  // FIXED: J3 section with proper scaling and clamping
+  if (joints.j3) {
+    if (joints.j3._baseY === undefined) joints.j3._baseY = joints.j3.position.y;
+    // J3 is linear (mm) — scale it down safely, clamp so it never goes out of view
+    var j3_offset = (j3 * J3_SCALE * 0.001);
+    j3_offset = Math.max(-0.5, Math.min(0.5, j3_offset)); // clamp ±0.5 units
+    joints.j3.position.y = joints.j3._baseY + j3_offset;
+    joints.j3.visible = true;
+    joints.j3.traverse(function(child) { 
+        child.visible = true; 
+        if (child.isMesh) {
+            // Make sure material is visible
+            if (Array.isArray(child.material)) {
+                child.material.forEach(function(m) { m.visible = true; m.opacity = 1.0; });
+            } else if (child.material) {
+                child.material.visible = true;
+                child.material.opacity = 1.0;
+            }
+        }
+    });
+  }
+  if (joints.j4) {
+    joints.j4.rotation.y = j4 * D2R;
+    joints.j4.visible = true;
+    joints.j4.traverse(child => { child.visible = true; });
+  }
+  if (joints.j4) {
+    const wp = new THREE.Vector3();
+    joints.j4.getWorldPosition(wp);
+    const tx = document.getElementById('tx');
+    const ty = document.getElementById('ty');
+    const tz = document.getElementById('tz');
+    if (tx) tx.textContent = wp.x.toFixed(3);
+    if (ty) ty.textContent = wp.z.toFixed(3);
+    if (tz) tz.textContent = wp.y.toFixed(3);
+  }
+};
+
+window.updateScale = function(ct) {
+  const val = parseFloat(ct);
+  const el  = document.getElementById('scale-val');
+  const ov  = document.getElementById('scale-overlay');
+  if (!el || !ov) return;
+  
+  el.textContent = val.toFixed(4);
+  if (val > 0) {
+    ov.classList.add('live');
+    el.style.color = '#ffffff';
+  } else {
+    ov.classList.remove('live');
+    el.style.color = 'var(--text2)';
+  }
+};
+window.setAutoRotate = function(on) { controls.autoRotate = on; };
+window.toggleGridVisibility = function(visible) { if (grid) grid.visible = visible; };
+
+window.setSlotMode = function(on) {
+  slotMode = on;
+  document.getElementById('slot-badge').classList.toggle('active', on);
+  canvasWrap.classList.toggle('slot-mode', on);
+  controls.enableRotate = true;
+  controls.enableZoom   = true;
+  controls.enablePan    = true;
+
+  slotData.forEach(d => applySlotColor(d));
+  if (!on) { hidePanel(); closePicker(); }
+};
+
+window.selectSlotFromPanel = function(slotIndex) {
+    // Do nothing for now
+};
+
+window.setSlotColor = function(slotIndex, hexColor) {
+  const name = SLOT_ORDER[slotIndex];
+  if (!name || !robotModel) return;
+  const node = robotModel.getObjectByName(name);
+  if (!node || !node.isMesh) return;
+  const color = new THREE.Color(hexColor);
+  const mats  = Array.isArray(node.material) ? node.material : [node.material];
+  mats.forEach(mat => {
+    if (!mat) return;
+    mat.color.set(color);
+    mat.emissive          = color.clone().multiplyScalar(0.3);
+    mat.emissiveIntensity = 1;
+    mat.transparent       = false;
+    mat.opacity           = 1.0;
+    mat.needsUpdate       = true;
+  });
+};
+
+// ── Render loop ───────────────────────────────────────────────────────────────
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  resize();
+  controls.update();
+  slotData.forEach(d => {
+    if (Math.abs(d.currentY - d.targetY) > 0.00001) {
+      d.currentY += (d.targetY - d.currentY) * 0.12;
+      d.mesh.position.y = d.currentY;
+    }
+  });
+  renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>

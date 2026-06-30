@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>LUMINAX TEST - Check Your Model</title>
+<style>
+  body {
+    background: #0A0C0B;
+    color: #E2E8E2;
+    font-family: 'Courier New', monospace;
+    padding: 30px;
+    margin: 0;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #111411;
+    border-radius: 16px;
+    padding: 25px;
+    border: 1px solid #4ade80;
+  }
+  h1 {
+    color: #4ade80;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  .success {
+    color: #4ade80;
+    background: #1a2a1a;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+  }
+  .error {
+    color: #f87171;
+    background: #2a1a1a;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+  }
+  .info-box {
+    background: #0A0C0B;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 3px solid #4ade80;
+  }
+  .node-list {
+    background: #0A0C0B;
+    padding: 10px;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+  }
+  .node-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #1a1e1a;
+    font-family: monospace;
+  }
+  button {
+    background: #4ade80;
+    color: #0A0C0B;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+  }
+  button:hover {
+    background: #65e895;
+  }
+  .instruction {
+    background: #1a1a2a;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔍 LUMINAX MODEL DIAGNOSTIC</h1>
+  
+  <div id="result">
+    <div class="info-box">⏳ Loading SCARA_ROBOT01.glb...</div>
+  </div>
+  
+  <div class="instruction" id="instruction" style="display: none;">
+    <strong>📋 TO SEND ME THE RESULTS:</strong><br><br>
+    1. Select ALL the text below (Ctrl+A or Cmd+A)<br>
+    2. Copy it (Ctrl+C or Cmd+C)<br>
+    3. Paste it here in our chat<br><br>
+    <button id="copyBtn">📋 COPY ALL RESULTS</button>
+  </div>
+</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+    }
+  }
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  
+  const resultDiv = document.getElementById('result');
+  const instructionDiv = document.getElementById('instruction');
+  
+  const loader = new GLTFLoader();
+  
+  loader.load('./SCARA_ROBOT01.glb',
+    (gltf) => {
+      const model = gltf.scene;
+      
+      // Calculate size
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      
+      // Get all node names
+      const nodes = [];
+      model.traverse((node) => {
+        if (node.name && node.name.trim() !== '') {
+          nodes.push(node.name);
+        }
+      });
+      
+      // Check for potential joint nodes
+      const jointKeywords = ['J1', 'J2', 'J3', 'J4', 'Base', 'Arm', 'Spindle', 'Wrist', 
+                            'LINK', 'Joint', 'Body', 'Elbow', 'Tool', 'Gripper'];
+      const foundJoints = nodes.filter(n => 
+        jointKeywords.some(k => n.toUpperCase().includes(k.toUpperCase()))
+      );
+      
+      const resultHTML = `
+        <div class="success">✅ FILE FOUND AND LOADED SUCCESSFULLY!</div>
+        
+        <div class="info-box">
+          <strong>📐 MODEL SIZE (VERY IMPORTANT):</strong><br><br>
+          • <strong style="color:#4ade80;">HEIGHT (Y axis):</strong> ${size.y.toFixed(6)} units<br>
+          • <strong>WIDTH (X axis):</strong> ${size.x.toFixed(6)} units<br>
+          • <strong>DEPTH (Z axis):</strong> ${size.z.toFixed(6)} units<br><br>
+          <strong style="color:#fde047;">⚠️ This is VERY SMALL!</strong> Most models are between 1-10 units.<br>
+          Yours is only ${size.y.toFixed(6)} units tall.
+        </div>
+        
+        <div class="info-box">
+          <strong>🔧 RECOMMENDED SCALE TO MAKE IT VISIBLE:</strong><br><br>
+          • To make it <strong>5 units tall</strong> → Use scale: <strong style="color:#4ade80; font-size:18px;">${Math.round(5 / size.y)}x</strong><br>
+          • To make it <strong>10 units tall</strong> → Use scale: <strong style="color:#4ade80; font-size:18px;">${Math.round(10 / size.y)}x</strong><br>
+          • To make it <strong>20 units tall</strong> → Use scale: <strong style="color:#4ade80; font-size:18px;">${Math.round(20 / size.y)}x</strong>
+        </div>
+        
+        <div class="info-box">
+          <strong>🎯 POTENTIAL JOINT NODES FOUND:</strong><br><br>
+          ${foundJoints.length > 0 ? foundJoints.slice(0, 20).map(n => `• ${n}`).join('<br>') : 'No standard joint names found. Your model may use custom names.'}
+          ${foundJoints.length > 20 ? '<br>• ... and more' : ''}
+        </div>
+        
+        <div class="info-box">
+          <strong>📦 ALL NODE NAMES (${nodes.length} total):</strong><br>
+          <div class="node-list">
+            ${nodes.map(n => `<div class="node-item">📌 ${n}</div>`).join('')}
+          </div>
+        </div>
+        
+        <div class="info-box" style="background: #1a2a1a;">
+          <strong>📋 SUMMARY FOR ME:</strong><br><br>
+          <textarea id="summaryText" rows="8" style="width:100%; background:#0A0C0B; color:#E2E8E2; border:1px solid #4ade80; padding:10px; border-radius:8px; font-family:monospace; font-size:11px;" readonly>
+=== LUMINAX MODEL REPORT ===
+Model Height: ${size.y.toFixed(6)} units
+Model Width: ${size.x.toFixed(6)} units
+Model Depth: ${size.z.toFixed(6)} units
+Total Nodes: ${nodes.length}
+
+Recommended Scale (5 units tall): ${Math.round(5 / size.y)}x
+Recommended Scale (10 units tall): ${Math.round(10 / size.y)}x
+
+Node Names:
+${nodes.join('\n')}
+
+Potential Joints Found:
+${foundJoints.join('\n')}
+          </textarea>
+        </div>
+      `;
+      
+      resultDiv.innerHTML = resultHTML;
+      instructionDiv.style.display = 'block';
+      
+      // Copy button functionality
+      document.getElementById('copyBtn').addEventListener('click', () => {
+        const textarea = document.getElementById('summaryText');
+        textarea.select();
+        document.execCommand('copy');
+        alert('✅ Results copied! Now paste them in the chat.');
+      });
+      
+    },
+    (xhr) => {
+      // Loading progress
+      const percent = Math.floor((xhr.loaded / xhr.total) * 100);
+      resultDiv.innerHTML = `<div class="info-box">⏳ Loading... ${percent}%</div>`;
+    },
+    (error) => {
+      resultDiv.innerHTML = `
+        <div class="error">❌ ERROR: Could not load SCARA_ROBOT01.glb</div>
+        
+        <div class="info-box">
+          <strong>🔧 TROUBLESHOOTING:</strong><br><br>
+          1. Make sure the file is named exactly: <strong>SCARA_ROBOT01.glb</strong><br>
+          2. Make sure it's in the <strong>SAME FOLDER</strong> as this HTML file<br>
+          3. Check if the file is not corrupted<br><br>
+          <strong>Current file path:</strong> ./SCARA_ROBOT01.glb<br><br>
+          <strong>Your folder should look like:</strong><br>
+          📁 Your Folder/<br>
+          &nbsp;&nbsp; ├── test.html (this file)<br>
+          &nbsp;&nbsp; └── SCARA_ROBOT01.glb (your model)
+        </div>
+      `;
+    }
+  );
+</script>
+</body>
+</html>

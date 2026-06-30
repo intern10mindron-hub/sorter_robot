@@ -1,0 +1,272 @@
+[
+  {
+    "name": "Default 66 Ranges",
+    "slots": [
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.0
+      },
+      {
+        "min_ct": 0.0,
+        "max_ct": 0.1
+      },
+      {
+        "min_ct": 0.1,
+        "max_ct": 0.2
+      },
+      {
+        "min_ct": 0.2,
+        "max_ct": 0.3
+      },
+      {
+        "min_ct": 0.3,
+        "max_ct": 0.4
+      },
+      {
+        "min_ct": 0.4,
+        "max_ct": 0.5
+      },
+      {
+        "min_ct": 0.5,
+        "max_ct": 0.6
+      },
+      {
+        "min_ct": 0.6,
+        "max_ct": 0.7
+      },
+      {
+        "min_ct": 0.7,
+        "max_ct": 0.8
+      },
+      {
+        "min_ct": 0.8,
+        "max_ct": 0.9
+      },
+      {
+        "min_ct": 0.9,
+        "max_ct": 1.0
+      },
+      {
+        "min_ct": 1.0,
+        "max_ct": 1.1
+      },
+      {
+        "min_ct": 1.1,
+        "max_ct": 1.2
+      },
+      {
+        "min_ct": 1.2,
+        "max_ct": 1.3
+      },
+      {
+        "min_ct": 1.3,
+        "max_ct": 1.4
+      },
+      {
+        "min_ct": 1.4,
+        "max_ct": 1.5
+      },
+      {
+        "min_ct": 1.5,
+        "max_ct": 1.6
+      },
+      {
+        "min_ct": 1.6,
+        "max_ct": 1.7
+      },
+      {
+        "min_ct": 1.7,
+        "max_ct": 1.8
+      },
+      {
+        "min_ct": 1.8,
+        "max_ct": 1.9
+      },
+      {
+        "min_ct": 1.9,
+        "max_ct": 2.0
+      },
+      {
+        "min_ct": 2.0,
+        "max_ct": 2.1
+      },
+      {
+        "min_ct": 2.1,
+        "max_ct": 2.2
+      },
+      {
+        "min_ct": 2.2,
+        "max_ct": 2.3
+      },
+      {
+        "min_ct": 2.3,
+        "max_ct": 2.4
+      },
+      {
+        "min_ct": 2.4,
+        "max_ct": 2.5
+      },
+      {
+        "min_ct": 2.5,
+        "max_ct": 2.6
+      },
+      {
+        "min_ct": 2.6,
+        "max_ct": 2.7
+      },
+      {
+        "min_ct": 2.7,
+        "max_ct": 2.8
+      },
+      {
+        "min_ct": 2.8,
+        "max_ct": 2.9
+      },
+      {
+        "min_ct": 2.9,
+        "max_ct": 3.0
+      },
+      {
+        "min_ct": 3.0,
+        "max_ct": 3.1
+      },
+      {
+        "min_ct": 3.1,
+        "max_ct": 3.2
+      },
+      {
+        "min_ct": 3.2,
+        "max_ct": 3.3
+      },
+      {
+        "min_ct": 3.3,
+        "max_ct": 3.4
+      },
+      {
+        "min_ct": 3.4,
+        "max_ct": 3.5
+      },
+      {
+        "min_ct": 3.5,
+        "max_ct": 3.6
+      },
+      {
+        "min_ct": 3.6,
+        "max_ct": 3.7
+      },
+      {
+        "min_ct": 3.7,
+        "max_ct": 3.8
+      },
+      {
+        "min_ct": 3.8,
+        "max_ct": 3.9
+      },
+      {
+        "min_ct": 3.9,
+        "max_ct": 4.0
+      },
+      {
+        "min_ct": 4.0,
+        "max_ct": 4.1
+      },
+      {
+        "min_ct": 4.1,
+        "max_ct": 4.2
+      },
+      {
+        "min_ct": 4.2,
+        "max_ct": 4.3
+      },
+      {
+        "min_ct": 4.3,
+        "max_ct": 4.4
+      },
+      {
+        "min_ct": 4.4,
+        "max_ct": 4.5
+      },
+      {
+        "min_ct": 4.5,
+        "max_ct": 4.6
+      },
+      {
+        "min_ct": 4.6,
+        "max_ct": 4.7
+      },
+      {
+        "min_ct": 4.7,
+        "max_ct": 4.8
+      },
+      {
+        "min_ct": 4.8,
+        "max_ct": 4.9
+      },
+      {
+        "min_ct": 4.9,
+        "max_ct": 5.0
+      },
+      {
+        "min_ct": 5.0,
+        "max_ct": 5.1
+      },
+      {
+        "min_ct": 5.1,
+        "max_ct": 5.2
+      },
+      {
+        "min_ct": 5.2,
+        "max_ct": 5.3
+      },
+      {
+        "min_ct": 5.3,
+        "max_ct": 5.4
+      },
+      {
+        "min_ct": 5.4,
+        "max_ct": 5.5
+      }
+    ],
+    "signature": "c85be207bbb4bdecdadb3df58cb1f37a54e4cc1c1e6a5f8d2a5b96f800f7ed7d"
+  }
+]
